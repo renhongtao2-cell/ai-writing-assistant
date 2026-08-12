@@ -1,0 +1,24 @@
+{
+  "name": "ai-writing-assistant",
+  "version": "1.0.0",
+  "description": "AI-powered writing assistant for Build Beyond Hackathon",
+  "main": "index.js",
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start"
+  },
+  "keywords": [
+    "ai",
+    "writing",
+    "hackathon"
+  ],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "next": "^15.0.0",
+    "openai": "^7.4.0",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0"
+  }
+}
