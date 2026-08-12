@@ -19,11 +19,11 @@ export default async function handler(req, res) {
     let systemPrompt = '';
     
     if (mode === 'optimize') {
-      systemPrompt = 'You are an expert writing optimizer. Improve the following text for clarity, flow, and professionalism.';
+      systemPrompt = 'You are an expert writing optimizer. Improve the following text for clarity, flow, and professionalism. Keep the original meaning intact.';
     } else if (mode === 'summarize') {
-      systemPrompt = 'You are an expert summarizer. Extract the key points from the following text. Provide main ideas, supporting details, and action items.';
+      systemPrompt = 'You are an expert summarizer. Extract the key points from the following text. Provide main ideas, supporting details, and action items in a concise format.';
     } else {
-      systemPrompt = 'You are a creative AI writer. Expand the following idea into a comprehensive, well-structured piece.';
+      systemPrompt = 'You are a creative AI writer. Expand the following idea into a comprehensive, well-structured piece with key points, examples, and actionable insights.';
     }
 
     const completion = await openai.chat.completions.create({
@@ -39,8 +39,8 @@ export default async function handler(req, res) {
     const result = completion.choices[0].message.content;
     res.status(200).json({ result });
   } catch (error) {
-    console.error('OpenAI API error:', error);
-    res.status(500).json({ error: 'Failed to generate content' });
+    console.error('OpenAI API error:', error.message);
+    res.status(500).json({ error: 'Failed to generate content: ' + error.message });
   }
 }
 
