@@ -1,64 +1,71 @@
-# AI Writing Assistant
+# Scriba — AI Writing Assistant
 
-A powerful AI-powered writing assistant built for the **Build Beyond Hackathon 2026**.
+Scriba is an AI-powered writing partner that guides you through the writing
+lifecycle with three agent modes:
 
-## Features
+- **Generate** — co-create a full piece from a one-line idea
+- **Optimize** — rewrite messy text into clean, professional copy
+- **Summarize** — distill long text into key points
 
-- ? **Generate** - AI-generated content expansion
-- ?? **Optimize** - Improve and enhance existing text
-- ?? **Summarize** - Extract key points from long texts
-- ?? **Copy** - One-click copy to clipboard
-- ?? **Responsive** - Works on all devices
+Built with **Next.js (Pages Router) + React**. The AI layer is **vendor-neutral**:
+it calls any **OpenAI-compatible** endpoint (e.g. the agnes relay), with an
+optional Google Gemini fallback. No proprietary cloud lock-in.
+
+## How Scriba uses AI
+
+Scriba sends the user's prompt plus a mode-specific system instruction to an
+LLM and returns the result. The three modes simply swap the system prompt:
+
+| Mode | Role |
+|------|------|
+| generate | Collaborative co-writer that expands a rough idea |
+| optimize | Professional editor that polishes messy text |
+| summarize | Extracts the key points from long text |
+
+Any OpenAI-compatible model works out of the box via environment variables.
 
 ## Tech Stack
 
-- Next.js 15
-- React 19
-- CSS Modules
-- Modern UI/UX
+- Next.js 15 (Pages Router) + React 19
+- OpenAI-compatible chat completions API (agnes relay / any endpoint)
+- Optional: Google Gemini via `@google/genai`
 
-## Getting Started
+## Prerequisites
 
-### Install Dependencies
-`ash
+- Node.js 20+
+- An OpenAI-compatible API key (e.g. agnes) — set `OPENAI_API_KEY`
+- Optional: `GEMINI_API_KEY` for the Gemini fallback
+
+## Local Development
+
+```bash
 npm install
-`
 
-### Run Development Server
-`ash
+# .env.local
+# OPENAI_API_KEY=your_key
+# OPENAI_API_BASE=https://your-openai-compatible-endpoint/v1   # optional
+# OPENAI_MODEL=gpt-3.5-turbo                                    # optional
+
 npm run dev
-`
+# http://localhost:3000
+```
 
-Open [http://localhost:3000](http://localhost:3000) in your browser.
+## Environment Variables
 
-### Build for Production
-`ash
-npm run build
-npm start
-`
+| Var | Required | Default | Notes |
+|-----|----------|---------|-------|
+| `OPENAI_API_KEY` | yes* | — | Any OpenAI-compatible key |
+| `OPENAI_API_BASE` | no | `https://api.openai.com/v1` | Point to agnes or another endpoint |
+| `OPENAI_MODEL` | no | `gpt-3.5-turbo` | Model name |
+| `GEMINI_API_KEY` | no | — | Optional fallback |
 
-## Hackathon Details
+\* At least one provider key is required.
 
-- **Event**: Build Beyond Hackathon 2026
-- **Platform**: Devpost
-- **Prize**:  USD
-- **Deadline**: August 15, 2026
-- **Type**: Online, Open to all
+## Deploy
 
-## Future Enhancements
-
-- [ ] Connect to OpenAI API for real AI generation
-- [ ] Add more writing modes (email, blog, social media)
-- [ ] Implement user authentication
-- [ ] Add history/saved projects
-- [ ] Export to PDF/DOCX
-- [ ] Multi-language support
+Deploy to Vercel or any Node host. Set the env vars above — the app needs no
+database. See `architecture.svg` for the request flow.
 
 ## License
 
-MIT - Build Beyond Hackathon 2026
-
----
-
-Built with ?? by the hackathon team
-
+MIT — see [LICENSE](./LICENSE).
