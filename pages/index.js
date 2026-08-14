@@ -5,15 +5,23 @@ import { PDFDocument, StandardFonts, rgb } from 'pdf-lib'
 const NUTRIENT_SCRIPT = 'https://unpkg.com/@nutrient-sdk/viewer@1.20.0/dist/nutrient-viewer.js'
 const NUTRIENT_BASE = 'https://unpkg.com/@nutrient-sdk/viewer@1.20.0/dist/'
 
-function ensureNutrient() {
+function ensureNutrient(timeoutMs = 5000) {
   return new Promise((resolve, reject) => {
     if (typeof window !== 'undefined' && window.NutrientViewer) return resolve(window.NutrientViewer)
+    const timer = setTimeout(() => {
+      reject(new Error('Nutrient SDK load timed out'))
+    }, timeoutMs)
     const s = document.createElement('script')
     s.src = NUTRIENT_SCRIPT
     s.async = true
-    s.onload = () =>
-      window.NutrientViewer ? resolve(window.NutrientViewer) : reject(new Error('Nutrient global missing'))
-    s.onerror = () => reject(new Error('Failed to load Nutrient script'))
+    s.onload = () => {
+      clearTimeout(timer)
+      window.NutrientViewer ? resolve(window.NutrientViewer) : reject(new Error('Nutrient global missing after load'))
+    }
+    s.onerror = () => {
+      clearTimeout(timer)
+      reject(new Error('Failed to load Nutrient script from CDN'))
+    }
     document.head.appendChild(s)
   })
 }
@@ -137,31 +145,33 @@ export default function Home() {
   const handleExportPdf = async () => {
     if (!outputText) return
     setPdfLoading(true)
+    setError('')
     try {
+      // Step 1: Always generate & download PDF first (reliable path via pdf-lib)
       const blob = await makePdfBlob(outputText)
-      const NutrientViewer = await ensureNutrient()
-      const url = URL.createObjectURL(blob)
-      setShowPdfModal(true)
-      // wait one tick for the container to mount
-      await new Promise((r) => setTimeout(r, 60))
-      const instance = await NutrientViewer.load({
-        container: pdfContainerRef.current,
-        document: url,
-        baseUrl: NUTRIENT_BASE,
-        licenseKey: process.env.NEXT_PUBLIC_NUTRIENT_LICENSE_KEY || undefined,
-      })
-      nutrientInstanceRef.current = instance
-    } catch (e) {
-      console.warn('[NUTRIENT] failed, downloading PDF directly:', e)
-      // Even if Nutrient viewer fails, still deliver a real PDF via pdf-lib
+      downloadPdf(blob)
+
+      // Step 2: Try to open in Nutrient viewer (best-effort, non-blocking)
       try {
-        const blob = await makePdfBlob(outputText)
-        downloadPdf(blob)
+        const url = URL.createObjectURL(blob)
+        setShowPdfModal(true)
+        await new Promise((r) => setTimeout(r, 100))
+        const NutrientViewer = await ensureNutrient()
+        const instance = await NutrientViewer.load({
+          container: pdfContainerRef.current,
+          document: url,
+          baseUrl: NUTRIENT_BASE,
+          licenseKey: process.env.NEXT_PUBLIC_NUTRIENT_LICENSE_KEY || undefined,
+        })
+        nutrientInstanceRef.current = instance
+      } catch (nutErr) {
+        console.warn('[NUTRIENT] viewer skipped:', nutErr?.message || nutErr)
         setShowPdfModal(false)
-        setError('PDF downloaded (viewer unavailable).')
-      } catch (pdfErr) {
-        setError('PDF generation failed.')
+        // PDF already downloaded — no action needed
       }
+    } catch (e) {
+      console.error('[EXPORT] failed:', e)
+      setError('PDF generation failed. Please try again.')
     } finally {
       setPdfLoading(false)
     }
