@@ -28,7 +28,11 @@ function ensureNutrient(timeoutMs = 5000) {
 
 async function makePdfBlob(text) {
   const pdf = await PDFDocument.create()
-  const font = await pdf.embedFont(StandardFonts.Helvetica)
+  let font
+  for (const fname of [StandardFonts.Helvetica, StandardFonts.Courier]) {
+    try { font = await pdf.embedFont(fname); break } catch (_) { /* try next */ }
+  }
+  if (!font) throw new Error('No font available for PDF generation')
   const fontSize = 12
   const lineHeight = 16
   const margin = 50
@@ -171,7 +175,7 @@ export default function Home() {
       }
     } catch (e) {
       console.error('[EXPORT] failed:', e)
-      setError('PDF generation failed. Please try again.')
+      setError('PDF generation failed: ' + (e?.message || e))
     } finally {
       setPdfLoading(false)
     }
