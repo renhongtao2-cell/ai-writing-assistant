@@ -27,6 +27,8 @@ function ensureNutrient(timeoutMs = 5000) {
 }
 
 async function makePdfBlob(text) {
+  // Strip non-WinAnsi characters (emoji, CJK, symbols) that pdf-lib cannot encode
+  const sanitized = text.replace(/[^\x20-\x7E\n\r\t]/g, ' ')
   const pdf = await PDFDocument.create()
   let font
   for (const fname of [StandardFonts.Helvetica, StandardFonts.Courier]) {
@@ -50,7 +52,7 @@ async function makePdfBlob(text) {
     page.drawText(line, { x: margin, y, size: fontSize, font, color: rgb(0, 0, 0) })
     y -= lineHeight
   }
-  for (const para of text.split('\n')) {
+  for (const para of sanitized.split('\n')) {
     let line = ''
     for (const word of para.split(' ')) {
       const test = line ? line + ' ' + word : word
