@@ -1,4 +1,71 @@
-import { useState } from 'react'
+import { useState, useRef, useEffect } from 'react'
+import { PDFDocument, StandardFonts, rgb } from 'pdf-lib'
+
+// --- Nutrient Web SDK (loaded from unpkg CDN, no self-hosted assets) ---
+const NUTRIENT_SCRIPT = 'https://unpkg.com/@nutrient-sdk/viewer@1.20.0/dist/nutrient-viewer.js'
+const NUTRIENT_BASE = 'https://unpkg.com/@nutrient-sdk/viewer@1.20.0/dist/'
+
+function ensureNutrient() {
+  return new Promise((resolve, reject) => {
+    if (typeof window !== 'undefined' && window.NutrientViewer) return resolve(window.NutrientViewer)
+    const s = document.createElement('script')
+    s.src = NUTRIENT_SCRIPT
+    s.async = true
+    s.onload = () =>
+      window.NutrientViewer ? resolve(window.NutrientViewer) : reject(new Error('Nutrient global missing'))
+    s.onerror = () => reject(new Error('Failed to load Nutrient script'))
+    document.head.appendChild(s)
+  })
+}
+
+async function makePdfBlob(text) {
+  const pdf = await PDFDocument.create()
+  const font = await pdf.embedFont(StandardFonts.Helvetica)
+  const fontSize = 12
+  const lineHeight = 16
+  const margin = 50
+  const pageWidth = 595.28 // A4
+  const pageHeight = 841.89
+  const maxWidth = pageWidth - margin * 2
+  let page = pdf.addPage([pageWidth, pageHeight])
+  let y = pageHeight - margin
+  const newPage = () => {
+    page = pdf.addPage([pageWidth, pageHeight])
+    y = pageHeight - margin
+  }
+  const drawLine = (line) => {
+    if (y < margin) newPage()
+    page.drawText(line, { x: margin, y, size: fontSize, font, color: rgb(0, 0, 0) })
+    y -= lineHeight
+  }
+  for (const para of text.split('\n')) {
+    let line = ''
+    for (const word of para.split(' ')) {
+      const test = line ? line + ' ' + word : word
+      if (font.widthOfTextAtSize(test, fontSize) > maxWidth && line) {
+        drawLine(line)
+        line = word
+      } else {
+        line = test
+      }
+    }
+    if (line) drawLine(line)
+    y -= lineHeight / 2 // paragraph spacing
+  }
+  const bytes = await pdf.save()
+  return new Blob([bytes], { type: 'application/pdf' })
+}
+
+function downloadPdf(blob) {
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement('a')
+  a.href = url
+  a.download = 'ai-writing-result.pdf'
+  document.body.appendChild(a)
+  a.click()
+  document.body.removeChild(a)
+  URL.revokeObjectURL(url)
+}
 
 export default function Home() {
   const [inputText, setInputText] = useState('')
@@ -7,6 +74,10 @@ export default function Home() {
   const [activeTab, setActiveTab] = useState('generate')
   const [error, setError] = useState('')
   const [webGrounded, setWebGrounded] = useState(false)
+  const [showPdfModal, setShowPdfModal] = useState(false)
+  const [pdfLoading, setPdfLoading] = useState(false)
+  const pdfContainerRef = useRef(null)
+  const nutrientInstanceRef = useRef(null)
 
   const handleGenerate = async () => {
     if (!inputText.trim()) {
@@ -62,6 +133,52 @@ export default function Home() {
     navigator.clipboard.writeText(outputText)
     alert('Copied to clipboard!')
   }
+
+  const handleExportPdf = async () => {
+    if (!outputText) return
+    setPdfLoading(true)
+    try {
+      const blob = await makePdfBlob(outputText)
+      const NutrientViewer = await ensureNutrient()
+      const url = URL.createObjectURL(blob)
+      setShowPdfModal(true)
+      // wait one tick for the container to mount
+      await new Promise((r) => setTimeout(r, 60))
+      const instance = await NutrientViewer.load({
+        container: pdfContainerRef.current,
+        document: url,
+        baseUrl: NUTRIENT_BASE,
+        licenseKey: process.env.NEXT_PUBLIC_NUTRIENT_LICENSE_KEY || undefined,
+      })
+      nutrientInstanceRef.current = instance
+    } catch (e) {
+      console.warn('[NUTRIENT] failed, downloading PDF directly:', e)
+      // Even if Nutrient viewer fails, still deliver a real PDF via pdf-lib
+      try {
+        const blob = await makePdfBlob(outputText)
+        downloadPdf(blob)
+        setShowPdfModal(false)
+        setError('PDF downloaded (viewer unavailable).')
+      } catch (pdfErr) {
+        setError('PDF generation failed.')
+      }
+    } finally {
+      setPdfLoading(false)
+    }
+  }
+
+  useEffect(() => {
+    return () => {
+      if (nutrientInstanceRef.current) {
+        try {
+          window.NutrientViewer && window.NutrientViewer.unload(nutrientInstanceRef.current)
+        } catch (_) {
+          /* noop */
+        }
+        nutrientInstanceRef.current = null
+      }
+    }
+  }, [])
 
   return (
     <div style={{ minHeight: '100vh', background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)', padding: '2rem' }}>
@@ -138,6 +255,13 @@ export default function Home() {
               >
                 Copy to Clipboard
               </button>
+              <button
+                onClick={handleExportPdf}
+                disabled={pdfLoading}
+                style={{ padding: '0.5rem 1rem', background: pdfLoading ? '#ccc' : '#764ba2', color: 'white', border: 'none', borderRadius: '6px', cursor: pdfLoading ? 'not-allowed' : 'pointer' }}
+              >
+                {pdfLoading ? 'Opening viewer…' : '📄 Export as PDF (Nutrient)'}
+              </button>
             </div>
           )}
 
@@ -150,6 +274,53 @@ export default function Home() {
           <p>Built for API World 2026 — DevNetwork [API + Cloud + AI] Hackathon</p>
         </footer>
       </div>
+
+      {showPdfModal && (
+        <div
+          style={{
+            position: 'fixed',
+            inset: 0,
+            background: 'rgba(0,0,0,0.6)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 1000,
+            padding: '1rem',
+          }}
+        >
+          <div
+            style={{
+              background: 'white',
+              borderRadius: '12px',
+              width: '92vw',
+              maxWidth: '960px',
+              height: '86vh',
+              display: 'flex',
+              flexDirection: 'column',
+              overflow: 'hidden',
+            }}
+          >
+            <div
+              style={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                padding: '0.75rem 1rem',
+                borderBottom: '1px solid #eee',
+              }}
+            >
+              <strong>📄 Document Preview &amp; Export — Powered by Nutrient</strong>
+              <button
+                onClick={() => setShowPdfModal(false)}
+                style={{ border: 'none', background: 'transparent', fontSize: '1.3rem', cursor: 'pointer', lineHeight: 1 }}
+              >
+                ✕
+              </button>
+            </div>
+            <div ref={pdfContainerRef} style={{ flex: 1, minHeight: 0 }} />
+          </div>
+        </div>
+      )}
     </div>
   )
 }
