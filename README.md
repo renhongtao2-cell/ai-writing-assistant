@@ -24,6 +24,13 @@ LLM and returns the result. The three modes simply swap the system prompt:
 
 Any OpenAI-compatible model works out of the box via environment variables.
 
+### Live web grounding (optional)
+In **Generate** mode you can tick **"🌐 Ground with live web (SerpApi)"** to ground the
+draft in real-time search results. This calls the SerpApi Google Search API through
+`/api/search` and injects the top results as context. It is **env-gated**: set
+`SERPAPI_API_KEY` to enable it; without the key the toggle simply does nothing and the
+app falls back to pure LLM generation.
+
 ## Tech Stack
 
 - Next.js 15 (Pages Router) + React 19
@@ -58,6 +65,7 @@ npm run dev
 | `OPENAI_API_BASE` | no | `https://api.openai.com/v1` | Point to agnes or another endpoint |
 | `OPENAI_MODEL` | no | `gpt-3.5-turbo` | Model name |
 | `GEMINI_API_KEY` | no | — | Optional fallback |
+| `SERPAPI_API_KEY` | no | — | Enables live web grounding in Generate mode |
 
 \* At least one provider key is required.
 

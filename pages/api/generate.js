@@ -10,7 +10,7 @@ export default async function handler(request, response) {
   }
 
   try {
-    const { prompt, mode } = request.body;
+    const { prompt, mode, webContext } = request.body;
 
     if (!prompt) {
       response.status(400).json({ error: 'Prompt is required' });
@@ -27,6 +27,17 @@ export default async function handler(request, response) {
     } else if (mode === 'summarize') {
       systemPrompt =
         'You are Scriba, a collaborative AI writing partner acting as a summarizer. Read the user\'s long text and extract the key points as a tight, scannable summary. Output only the summary.';
+    }
+
+    // ---- Optional web grounding (SerpApi "Best AI Use Case" sponsor prize) ----
+    // webContext is an array of { title, snippet, link } produced by /api/search.
+    // When present, Scriba grounds its writing in live web facts instead of guessing.
+    if (Array.isArray(webContext) && webContext.length > 0) {
+      const facts = webContext
+        .map((r, i) => `[${i + 1}] ${r.title}\n${r.snippet}\n(${r.link})`)
+        .join('\n\n');
+      systemPrompt +=
+        `\n\nYou have access to the following live web search results. Use them to ground your answer in real, current facts where relevant, and cite the source number [n] inline when you use a fact. Do not invent facts beyond these sources.\n\nWEB SEARCH RESULTS:\n${facts}`;
     }
 
     // ---- Primary path: OpenAI-compatible provider (agnes / any OpenAI-compatible endpoint) ----
