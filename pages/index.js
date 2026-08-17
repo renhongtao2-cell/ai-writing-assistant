@@ -88,6 +88,7 @@ export default function Home() {
   const [activeTab, setActiveTab] = useState('generate')
   const [error, setError] = useState('')
   const [webGrounded, setWebGrounded] = useState(false)
+  const [memoryInfo, setMemoryInfo] = useState(null)
   const [showPdfModal, setShowPdfModal] = useState(false)
   const [pdfLoading, setPdfLoading] = useState(false)
   const pdfContainerRef = useRef(null)
@@ -135,6 +136,7 @@ export default function Home() {
         setError(data.error)
       } else {
         setOutputText(data.result)
+        if (data.memory) setMemoryInfo(data.memory)
       }
     } catch (err) {
       setError('Failed to connect to AI service. Is the server running?')
@@ -200,7 +202,7 @@ export default function Home() {
     <div style={{ minHeight: '100vh', background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)', padding: '2rem' }}>
       <div style={{ maxWidth: '800px', margin: '0 auto' }}>
         <h1 style={{ color: 'white', textAlign: 'center', fontSize: '2.5rem', marginBottom: '1rem' }}>AI Writing Assistant</h1>
-        <p style={{ color: 'white', textAlign: 'center', marginBottom: '2rem' }}>Powered by AI | API World 2026</p>
+        <p style={{ color: 'white', textAlign: 'center', marginBottom: '2rem' }}>Powered by agnes + HydraDB · Hack Hydra 2026</p>
 
         <div style={{ background: 'white', borderRadius: '16px', padding: '2rem', boxShadow: '0 10px 40px rgba(0,0,0,0.2)' }}>
           <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1.5rem' }}>
@@ -263,6 +265,17 @@ export default function Home() {
 
           {outputText && (
             <div style={{ marginTop: '1.5rem', background: '#f8f9fa', borderRadius: '8px', padding: '1.5rem' }}>
+              {memoryInfo?.enabled && (
+                <div style={{ marginBottom: '1rem', padding: '0.75rem 1rem', background: '#e8f5e9', border: '1px solid #a5d6a7', borderRadius: '8px', fontSize: '0.9rem', color: '#1b5e20' }}>
+                  🧠 <strong>HydraDB Memory</strong> · database: <code>{memoryInfo.database}</code>
+                  {' · '}
+                  {memoryInfo.retrieved.length > 0
+                    ? `recalled ${memoryInfo.retrieved.length} past interaction(s) → personalizing tone`
+                    : 'no prior memory matched this prompt'}
+                  {' · '}
+                  {memoryInfo.stored ? 'this interaction saved ✓' : 'save skipped'}
+                </div>
+              )}
               <h3 style={{ margin: '0 0 1rem 0', color: '#333' }}>AI Result:</h3>
               <pre style={{ whiteSpace: 'pre-wrap', fontFamily: 'inherit', fontSize: '0.95rem', lineHeight: '1.6', color: '#444', marginBottom: '1rem' }}>{outputText}</pre>
               <button
@@ -287,7 +300,7 @@ export default function Home() {
         </div>
 
         <footer style={{ textAlign: 'center', color: 'white', marginTop: '2rem', opacity: '0.9' }}>
-          <p>Built for API World 2026 — DevNetwork [API + Cloud + AI] Hackathon</p>
+          <p>Built for Hack Hydra 2026 — HydraDB "Memory &amp; Context Retrieval" Track</p>
         </footer>
       </div>
 

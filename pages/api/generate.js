@@ -43,10 +43,18 @@ export default async function handler(request, response) {
 
     // ---- Hack Hydra 2026: HydraDB "Memory and Context Retrieval" ----
     // Retrieve relevant past interactions so Scriba personalizes across sessions.
-    // Degrades silently if HydraDB is unavailable.
-    if (hydraEnabled()) {
+    // Degrades silently if HydraDB is unavailable. Surface metadata to the UI
+    // so the integration is visible without inspecting server-side logs.
+    const memoryMeta = {
+      enabled: hydraEnabled(),
+      database: process.env.HYDRADB_DATABASE || 'default-tenant',
+      retrieved: [],
+      stored: false,
+    };
+    if (memoryMeta.enabled) {
       try {
         const mems = await retrieveMemories({ query: prompt, maxResults: 5 });
+        memoryMeta.retrieved = mems;
         if (mems.length > 0) {
           const memBlock = mems
             .map((m, i) => `[M${i + 1}] ${m}`)
@@ -157,17 +165,18 @@ export default async function handler(request, response) {
     }
 
     // ---- Hack Hydra 2026: persist this interaction as memory (graceful) ----
-    if (hydraEnabled()) {
+    if (memoryMeta.enabled) {
       try {
         await addMemory({
           text: `User (${mode || 'generate'}): ${prompt}\nAssistant (${provider}): delivered a ${mode || 'generate'} result.`,
         });
+        memoryMeta.stored = true;
       } catch (storeErr) {
         console.warn('[HYDRADB] memory store skipped:', storeErr.message);
       }
     }
 
-    response.status(200).json({ result, provider });
+    response.status(200).json({ result, provider, memory: memoryMeta });
   } catch (error) {
     console.error('[API] Unhandled exception:', error);
     response.status(500).json({ error: `Internal server error: ${error.message}` });
