@@ -1,4 +1,5 @@
 import { GoogleGenAI } from '@google/genai';
+import { hydraEnabled, retrieveMemories, addMemory } from '../../lib/hydradb.js';
 
 // Run on the Node.js runtime (GenAI SDK requires Node, not Edge)
 export const runtime = 'nodejs';
@@ -40,12 +41,33 @@ export default async function handler(request, response) {
         `\n\nYou have access to the following live web search results. Use them to ground your answer in real, current facts where relevant, and cite the source number [n] inline when you use a fact. Do not invent facts beyond these sources.\n\nWEB SEARCH RESULTS:\n${facts}`;
     }
 
+    // ---- Hack Hydra 2026: HydraDB "Memory and Context Retrieval" ----
+    // Retrieve relevant past interactions so Scriba personalizes across sessions.
+    // Degrades silently if HydraDB is unavailable.
+    if (hydraEnabled()) {
+      try {
+        const mems = await retrieveMemories({ query: prompt, maxResults: 5 });
+        if (mems.length > 0) {
+          const memBlock = mems
+            .map((m, i) => `[M${i + 1}] ${m}`)
+            .join('\n');
+          systemPrompt +=
+            `\n\nRELEVANT MEMORY FROM PAST SESSIONS (use to personalize tone and recall the user's preferences; do not repeat verbatim):\n${memBlock}`;
+        }
+      } catch (memErr) {
+        console.warn('[HYDRADB] retrieval skipped:', memErr.message);
+      }
+    }
+
     // ---- Primary path: OpenAI-compatible provider (agnes / any OpenAI-compatible endpoint) ----
     // Vendor-neutral: works with renhongtao's agnes relay or any OpenAI endpoint.
     // Satisfies hackathons (e.g. Pixel Forge) that only require "AI incorporated".
     const apiKey = process.env.OPENAI_API_KEY;
     const apiBase = process.env.OPENAI_API_BASE || 'https://api.openai.com/v1';
     const model = process.env.OPENAI_MODEL || 'gpt-3.5-turbo';
+
+    let result = null;
+    let provider = null;
 
     if (apiKey) {
       try {
@@ -87,8 +109,8 @@ export default async function handler(request, response) {
           throw new Error('Unexpected response format from AI provider');
         }
 
-        response.status(200).json({ result: data.choices[0].message.content, provider: 'openai-compatible' });
-        return;
+        result = data.choices[0].message.content;
+        provider = 'openai-compatible';
       } catch (oiErr) {
         console.error('[OPENAI] Error:', oiErr);
         // fall through to the optional Gemini fallback below
@@ -96,38 +118,56 @@ export default async function handler(request, response) {
     }
 
     // ---- Optional fallback: Gemini via Google GenAI SDK ----
-    const geminiKey = process.env.GEMINI_API_KEY;
-    if (geminiKey) {
-      try {
-        const ai = new GoogleGenAI({ apiKey: geminiKey });
-        const result = await ai.models.generateContent({
-          model: process.env.GEMINI_MODEL || 'gemini-3.5-flash',
-          contents: prompt,
-          config: {
-            systemInstruction: systemPrompt,
-            maxOutputTokens: 1000,
-            temperature: 0.7,
-          },
-        });
+    if (!result) {
+      const geminiKey = process.env.GEMINI_API_KEY;
+      if (geminiKey) {
+        try {
+          const ai = new GoogleGenAI({ apiKey: geminiKey });
+          const gResult = await ai.models.generateContent({
+            model: process.env.GEMINI_MODEL || 'gemini-3.5-flash',
+            contents: prompt,
+            config: {
+              systemInstruction: systemPrompt,
+              maxOutputTokens: 1000,
+              temperature: 0.7,
+            },
+          });
 
-        const text = result.text;
-        if (!text) {
-          response.status(502).json({ error: 'Gemini returned an empty response.' });
+          const text = gResult.text;
+          if (!text) {
+            response.status(502).json({ error: 'Gemini returned an empty response.' });
+            return;
+          }
+          result = text;
+          provider = 'gemini-3.5';
+        } catch (gemErr) {
+          console.error('[GEMINI] Error:', gemErr);
+          response.status(502).json({ error: `Gemini API error: ${gemErr.message}` });
           return;
         }
-        response.status(200).json({ result: text, provider: 'gemini-3.5' });
-        return;
-      } catch (gemErr) {
-        console.error('[GEMINI] Error:', gemErr);
-        response.status(502).json({ error: `Gemini API error: ${gemErr.message}` });
-        return;
       }
     }
 
-    response.status(500).json({
-      error:
-        'No AI provider configured. Set OPENAI_API_KEY (and optional OPENAI_API_BASE) or GEMINI_API_KEY.',
-    });
+    if (!result) {
+      response.status(500).json({
+        error:
+          'No AI provider configured. Set OPENAI_API_KEY (and optional OPENAI_API_BASE) or GEMINI_API_KEY.',
+      });
+      return;
+    }
+
+    // ---- Hack Hydra 2026: persist this interaction as memory (graceful) ----
+    if (hydraEnabled()) {
+      try {
+        await addMemory({
+          text: `User (${mode || 'generate'}): ${prompt}\nAssistant (${provider}): delivered a ${mode || 'generate'} result.`,
+        });
+      } catch (storeErr) {
+        console.warn('[HYDRADB] memory store skipped:', storeErr.message);
+      }
+    }
+
+    response.status(200).json({ result, provider });
   } catch (error) {
     console.error('[API] Unhandled exception:', error);
     response.status(500).json({ error: `Internal server error: ${error.message}` });
