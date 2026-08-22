@@ -1,0 +1,49 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 820 420" font-family="Segoe UI, Arial, sans-serif">
+  <defs>
+    <marker id="arrow" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto">
+      <path d="M0,0 L8,3 L0,6 Z" fill="#374151"/>
+    </marker>
+    <linearGradient id="gcp" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#E8F0FE"/>
+      <stop offset="100%" stop-color="#D2E3FC"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Title -->
+  <text x="410" y="34" text-anchor="middle" font-size="20" font-weight="700" fill="#1a73e8">Scriba — System Architecture</text>
+
+  <!-- Google Cloud container -->
+  <rect x="250" y="70" width="520" height="290" rx="14" fill="url(#gcp)" stroke="#1a73e8" stroke-width="2" stroke-dasharray="6 4"/>
+  <text x="270" y="92" font-size="14" font-weight="700" fill="#1a73e8">GOOGLE CLOUD</text>
+
+  <!-- Browser -->
+  <rect x="30" y="150" width="150" height="90" rx="10" fill="#ffffff" stroke="#9aa0a6" stroke-width="2"/>
+  <text x="105" y="185" text-anchor="middle" font-size="14" font-weight="700" fill="#202124">User Browser</text>
+  <text x="105" y="207" text-anchor="middle" font-size="11" fill="#5f6368">Next.js 15 · React 19</text>
+  <text x="105" y="224" text-anchor="middle" font-size="11" fill="#5f6368">UI (3 modes)</text>
+
+  <!-- Cloud Run -->
+  <rect x="300" y="150" width="170" height="90" rx="10" fill="#ffffff" stroke="#1a73e8" stroke-width="2"/>
+  <text x="385" y="180" text-anchor="middle" font-size="14" font-weight="700" fill="#1a73e8">Cloud Run</text>
+  <text x="385" y="202" text-anchor="middle" font-size="11" fill="#5f6368">Next.js API Route</text>
+  <text x="385" y="219" text-anchor="middle" font-size="11" fill="#5f6368">/api/generate</text>
+
+  <!-- GenAI SDK -->
+  <rect x="540" y="150" width="180" height="90" rx="10" fill="#ffffff" stroke="#34a853" stroke-width="2"/>
+  <text x="630" y="180" text-anchor="middle" font-size="14" font-weight="700" fill="#188038">Google GenAI SDK</text>
+  <text x="630" y="202" text-anchor="middle" font-size="11" fill="#5f6368">@google/genai</text>
+  <text x="630" y="219" text-anchor="middle" font-size="11" fill="#5f6368">Agent framework</text>
+
+  <!-- Gemini -->
+  <rect x="540" y="270" width="180" height="70" rx="10" fill="#fef7e0" stroke="#f9ab00" stroke-width="2"/>
+  <text x="630" y="300" text-anchor="middle" font-size="14" font-weight="700" fill="#b06000">Gemini 3.5 Flash</text>
+  <text x="630" y="322" text-anchor="middle" font-size="11" fill="#5f6368">gemini-3.5-flash</text>
+
+  <!-- Arrows -->
+  <line x1="180" y1="195" x2="295" y2="195" stroke="#374151" stroke-width="2" marker-end="url(#arrow)"/>
+  <line x1="470" y1="195" x2="535" y2="195" stroke="#374151" stroke-width="2" marker-end="url(#arrow)"/>
+  <line x1="630" y1="240" x2="630" y2="265" stroke="#374151" stroke-width="2" marker-end="url(#arrow)"/>
+
+  <!-- Legend -->
+  <text x="30" y="380" font-size="11" fill="#5f6368">Data flow:  User → Cloud Run (Next.js) → GenAI SDK → Gemini 3.5  ·  all hosted on Google Cloud</text>
+</svg>

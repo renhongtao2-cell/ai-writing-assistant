@@ -33,3 +33,15 @@ next-env.d.ts
 # OpenAI API Key (NEVER commit this!)
 .env.local
 
+# Local media / build assets — never commit large binaries
+*.mp4
+*.mov
+*.webm
+*.avi
+*.mkv
+*.mp3
+*.wav
+outputs/
+__pycache__/
+*.pyc
+*.pyo

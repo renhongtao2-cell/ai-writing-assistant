@@ -1,7 +1,7 @@
-Hi, I'm Hongtao. This is Scriba, an AI writing assistant I'm submitting to Hack Hydra 2026, the Memory and Context Retrieval track, powered by HydraDB. Unlike ordinary chatbots that forget you the moment you refresh, Scriba keeps a long-term memory.
+Hi, I'm Hongtao. This is Scriba, my AI writing assistant for Hack Hydra 2026 — the Memory and Context Retrieval track, powered by HydraDB. Unlike chatbots that forget on refresh, Scriba remembers.
 
-In Generate mode, I tell Scriba my writing preference: short, punchy, conversational, no fluff. It drafts exactly in that style, and the green badge confirms this interaction was saved into HydraDB's memory store, database default-tenant.
+In Generate mode I say: short, punchy, conversational. It drafts in that style, and the green badge confirms it was saved to HydraDB, default-tenant.
 
-Now I refresh the page — a completely new session. I give Scriba a different task: a slogan for a new cold-brew coffee, and I say nothing about style. The badge now reads "recalled 1 past interaction", and the output stays short and punchy, because Scriba retrieved my past preference from HydraDB before generating. That is cross-session memory retrieval in action.
+Now I refresh — a new session. New task: a slogan for cold-brew coffee, no mention of style. The badge reads "recalled 1 past interaction", output stays short and punchy — Scriba retrieved my preference before generating.
 
-HydraDB is the memory backbone, meaningfully integrated into Scriba's core writing loop — every response is grounded in recalled memory and persisted back. agnes stays the LLM; HydraDB stays the memory. Thank you.
+HydraDB is the memory backbone in Scriba's core loop. Thank you.

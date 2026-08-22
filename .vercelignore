@@ -1,0 +1,15 @@
+# Large local media assets — not needed by the deployed Next.js app
+*.mp4
+*.mov
+*.webm
+*.avi
+*.mkv
+
+# Local output / cache dirs
+outputs/
+__pycache__/
+*.pyc
+
+# Local env (secrets are set via Vercel dashboard/env, not files)
+.env.local
+.env*.local
